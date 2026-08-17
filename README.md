@@ -1,9 +1,8 @@
-
 # DeepSeek Harness for Android — 增强版
 
 > 🚀 **在 Android 手机上原生运行 DeepSeek Harness，配备 16 个 MCP 服务器、前沿论文编码技术、自循环工作流**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android/Termux-3DDC84)](https://termux.com)
 [![DSH Version](https://img.shields.io/badge/dsh-0.1.0--rc.6-blue)](https://github.com/deepseek-ai/deepseek-harness)
 [![MCP Servers](https://img.shields.io/badge/MCP-16%20servers-8A2BE2)](config/mcp.cordis.patch.yml)
@@ -117,8 +116,8 @@
 
 ```bash
 pkg install -y git
-git clone https://github.com/FunnelCakes/deepseek-harness-android.git
-cd deepseek-harness-android
+git clone https://github.com/xyz56m/Harnass.git
+cd Harnass
 bash setup.sh
 ```
 
@@ -202,7 +201,7 @@ bash ~/dsh/stop_dsh.sh    # 停止
 ## 项目结构
 
 ```
-deepseek-harness-android/
+Harnass/
 ├── setup.sh                 # 一键安装脚本（10 步）
 ├── config/
 │   ├── mcp.cordis.patch.yml # 16 个 MCP 服务器配置
@@ -268,7 +267,7 @@ python3 -c "import py_compile; py_compile.compile('scripts/vision-mcp.py', dorai
 
 ## 许可证
 
-MIT License — 详见 [LICENSE](LICENSE)
+Apache License 2.0 — 详见 [LICENSE](LICENSE)
 
 ---
 
@@ -306,8 +305,8 @@ One-click deployment of DeepSeek Harness on Android with **23 MCP servers**, **c
 
 ```bash
 pkg install -y git
-git clone https://github.com/FunnelCakes/deepseek-harness-android.git
-cd deepseek-harness-android
+git clone https://github.com/xyz56m/Harnass.git
+cd Harnass
 bash setup.sh
 bash ~/dsh/start_dsh.sh
 ```

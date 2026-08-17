@@ -1,0 +1,328 @@
+# DeepSeek Harness MCP 服务器配置（Android/Termux）
+# 安装到 ~/.dsh/profiles/web/cordis.patch.yml 的 sandbox-policy 之后
+#
+# 由 setup.sh 渲染：{{PLACEHOLDER}} 在安装时替换为实际值。
+# 每个 MCP 服务器连接外部工具服务器，将其工具注册为
+# mcp__<serverName>__<rawName> 供模型使用。
+#
+# 配置说明：
+#   failOnStartupError: false  → 该服务器连接失败时不阻塞整体启动
+#   reconnect.enabled: true    → 断线后自动重连（指数退避）
+#
+# 查看已注册的 MCP 工具：在 Web UI 中查看 /tools 页面或检查日志。
+# 禁用某个 MCP：在对应行前加 # 注释，重启 dsh 生效。
+# 添加更多 MCP：参考 @deepseek-ai/dsh-mcp-client 文档，按此格式追加。
+# =============================================================================
+
+# ── MCP: GitHub ──────────────────────────────────────────────────────────────
+# 提供 GitHub API 访问（issue/PR/repo 搜索等），需要 GITHUB_TOKEN 环境变量。
+# 未设置 GITHUB_TOKEN 时此服务器不会启动（由 setup.sh 根据环境变量决定是否渲染）。
+- id: mcp-github
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: github
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-github'
+    env:
+      GITHUB_TOKEN: {{GITHUB_TOKEN}}
+    toolCallTimeoutMs: 120000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 5
+
+# ── MCP: Filesystem ──────────────────────────────────────────────────────────
+# 提供结构化文件系统访问（读/写/搜索/目录列表），限定在 HOME 目录下。
+# 补充 dsh 内置的 tool-fs 工具，提供更细粒度的文件操作。
+- id: mcp-filesystem
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: filesystem
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-filesystem'
+      - {{HOME}}
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 5
+
+# ── MCP: Vision (OCR + 图片元信息) ──────────────────────────────────────────
+# 自定义 Python MCP 服务器，使用 Tesseract OCR 识别图片文字，提取图片元信息。
+# 需要安装 tesseract（pkg install tesseract）和 python3。
+- id: mcp-vision
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: vision
+    transport: stdio
+    command: python3
+    args:
+      - {{MCP_SCRIPTS_DIR}}/vision-mcp.py
+    toolCallTimeoutMs: 120000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Media (图片处理) ────────────────────────────────────────────────────
+# 自定义 Python MCP 服务器，使用 ImageMagick 做图片格式转换、缩放、压缩、缩略图。
+# 需要安装 imagemagick（pkg install imagemagick）。
+- id: mcp-media
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: media
+    transport: stdio
+    command: python3
+    args:
+      - {{MCP_SCRIPTS_DIR}}/media-mcp.py
+    toolCallTimeoutMs: 60000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: QR Code ─────────────────────────────────────────────────────────────
+# 生成 QR 码（二维码）图片，支持文本/URL 编码为二维码。
+- id: mcp-qrcode
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: qrcode
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - mcp-server-qrcode
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Memory (知识图谱记忆) ─────────────────────────────────────────────
+# 提供持久化知识图谱记忆，让模型记住跨会话的信息。
+- id: mcp-memory
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: memory
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-memory'
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Activity Memory (活动记忆) ─────────────────────────────────────────
+# 自定义 Python MCP 服务器，提供跨会话活动记忆：
+# 记住用户偏好、学习记录、代码习惯、项目上下文。
+# 数据以 JSON 格式存储在 ~/.dsh/activity-memory/ 目录下。
+- id: mcp-activity-memory
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: activity_memory
+    transport: stdio
+    command: python3
+    args:
+      - {{MCP_SCRIPTS_DIR}}/activity-memory-mcp.py
+    toolCallTimeoutMs: 15000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Code Quality (代码质量分析) ───────────────────────────────────────
+# 自定义 Python MCP 服务器，基于前沿论文技术实现代码质量分析：
+# 复杂度检查、安全扫描、风格检查、最佳实践检查。
+- id: mcp-code-quality
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: code_quality
+    transport: stdio
+    command: python3
+    args:
+      - {{MCP_SCRIPTS_DIR}}/code-quality-mcp.py
+    toolCallTimeoutMs: 60000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Sequential Thinking (结构化推理) ──────────────────────────────────
+# 提供顺序思维和问题解决能力，适合复杂推理任务。
+- id: mcp-sequential-thinking
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: sequential_thinking
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-sequential-thinking'
+    toolCallTimeoutMs: 120000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Everything (协议测试/调试) ─────────────────────────────────────────
+# 提供完整的 MCP 协议能力测试集，包括 echo、ping、sample 等工具。
+- id: mcp-everything
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: everything
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-everything'
+    toolCallTimeoutMs: 15000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Brave Search (联网搜索) ───────────────────────────────────────────
+# 提供网络搜索能力，通过 Brave Search API 获取最新信息。
+- id: mcp-brave-search
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: brave_search
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - '@modelcontextprotocol/server-brave-search'
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: SQLite (数据库) ────────────────────────────────────────────────────
+# 提供 SQLite 数据库操作能力：查询、创建表、插入数据等。
+# 需要 pkg install sqlite（termux 默认已装）。
+- id: mcp-sqlite
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: sqlite
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - mcp-server-sqlite
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Markdown (文档处理) ─────────────────────────────────────────────────
+# 提供 Markdown 文件处理能力：搜索、提取章节、列出标题、查找代码块。
+- id: mcp-markdown
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: markdown
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - mcp-server-markdown
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Utils (实用工具集: UUID/Hash/Base64/Regex/Emoji/翻译) ────────────
+# 自定义 Python MCP 服务器，零外部依赖，替代不存在的社区 npm 包。
+# 提供 11 个工具：uuid_generate / hash_file / hash_text / base64_encode /
+# base64_decode / regex_test / regex_find / regex_replace / translate_text /
+# emoji_search / emoji_random
+- id: mcp-utils
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: utils
+    transport: stdio
+    command: python3
+    args:
+      - {{MCP_SCRIPTS_DIR}}/utils-mcp.py
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: Weather (天气查询) ─────────────────────────────────────────────────# ── MCP: Weather (天气查询) ─────────────────────────────────────────────────
+# 提供天气查询功能，获取指定位置的天气信息。
+- id: mcp-weather
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: weather
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - mcp-server-weather
+    toolCallTimeoutMs: 15000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3
+
+# ── MCP: YouTube (视频搜索) ──────────────────────────────────────────────────
+# 提供 YouTube 视频搜索和信息查询功能。
+- id: mcp-youtube
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: youtube
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - mcp-server-youtube
+    toolCallTimeoutMs: 30000
+    failOnStartupError: false
+    reconnect:
+      enabled: true
+      initialDelayMs: 500
+      maxDelayMs: 30000
+      maxAttempts: 3

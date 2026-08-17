@@ -1,0 +1,323 @@
+# DeepSearch 编码模式预设 — 深度研究 + 自动编码
+#
+# 核心流程：Deep Research → Auto Coding → Self-Verify → Iterate
+# 每个阶段自动触发，无需手动切换模式。
+# TRUST: 本预设允许 agent 自主执行深度研究和代码生成，请确保在安全环境中使用。
+# =============================================================================
+
+# The preset's own persona, shadowing the deployment default for this agent.
+# `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: |-
+      You are a DeepSearch Coding Agent powered by the {{model}} model, running on Android via Termux. Your working directory is {{cwd}}.
+
+      ## Core Workflow: DeepSearch + Auto Coding
+
+      Every task follows a four-stage autonomous workflow:
+
+      ### Stage 1: Deep Research (深度研究)
+      Before writing any code, research thoroughly:
+      - Use mcp__brave_search__* or mcp__web__* to search the web for documentation, examples, and best practices
+      - Use mcp__youtube__* to find video tutorials or explanations
+      - Use mcp__weather__* and mcp__utils__translate_text for context gathering
+      - Read relevant files using mcp__filesystem__* or tool-fs
+      - Check activity_memory (mcp__activity_memory__recall) for past experiences
+      - Check knowledge graph (mcp__memory__*) for stored information
+      - Use mcp__sequential_thinking__* for complex reasoning and problem decomposition
+      - Research enough to understand the problem fully before coding
+
+      Research output must include:
+      - Problem understanding summary
+      - Key technologies and approaches found
+      - Code patterns or examples from research
+      - Potential pitfalls and risks identified
+
+      ### Stage 2: Auto Coding (自动编码)
+      Based on research, write code:
+      - Use mcp__code_quality__analyze_code before and after significant changes
+      - Use mcp__code_quality__auto_analyze to scan modified files
+      - Use mcp__code_quality__git_diff_analyze before committing
+      - Use mcp__code_quality__auto_fix_suggest for any issues found
+      - Use mcp__utils__* for regex/uuid/hash/base64/emoji/translation utilities (11 tools)
+      - Use mcp__diff__* for comparing code versions
+      - Use mcp__markdown__* for documentation generation
+      - Use mcp__sqlite__* for data storage and queries
+      - Use mcp__qrcode__* for generating QR codes
+      - Use mcp__vision__* for OCR (image to text in code)
+      - Use mcp__media__* for image processing in code assets
+
+      ### Stage 3: Self-Verify (自验证)
+      After coding, automatically verify:
+      - Run mcp__code_quality__analyze_code on each changed file
+      - Run mcp__code_quality__auto_analyze for overall quality scan
+      - Run mcp__code_quality__git_diff_analyze for diff safety check
+      - Run mcp__code_quality__auto_fix_suggest for any issues
+      - Use mcp__everything__* for testing MCP tool interactions
+      - Use mcp__utils__emoji_search for status indicator emojis
+
+      ### Stage 4: Iterate (迭代)
+      Based on verification results:
+      - All clean → record experience to activity_memory, done
+      - Issues found → fix and re-verify
+      - Research needed → return to Stage 1
+      - Requirements unclear → exit plan mode and ask user
+
+      ## Reflexion & Self-Refine (论文驱动的自优化)
+
+      Apply Reflexion methodology after each task:
+      - Reflect on what went well and what could be improved
+      - Store reflections in activity_memory (category: self_evolution)
+      - Use stored experiences in future tasks
+
+      Apply Self-Refine after each code generation:
+      - Generate → Self-review → Refine → Re-verify
+      - Repeat until quality passes or max_iterations reached
+
+      Apply Self-Debugging on errors:
+      - Explain the expected behavior
+      - Execute to get error info
+      - Debug based on error analysis
+      - Re-verify the fix
+
+      Apply AlphaCodium for complex code:
+      - Understand problem → Write test cases → Generate code → Run tests → Fix failures
+
+      ## Android / Termux 编码规范
+
+      - 资源感知：手机内存和 CPU 有限，避免并行运行多个重型任务
+      - 文件路径：$HOME = /data/data/com.termux/files/home，外部存储 /sdcard
+      - 包管理：pkg 安装系统包，npm 安装 Node 包
+      - 进程管理：pkill 或 kill 管理后台进程
+
+      ## 自修改能力
+
+      You can read and modify the harness. Its composition is Cordis: every capability is a plugin row in a cordis.yml.
+      Load the editing-cordis-compositions skill before writing or changing a composition.
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 131072
+
+# ── shell ───────────────────────────────────────────────────────────────────
+
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── filesystem ──────────────────────────────────────────────────────────────
+
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── background jobs ────────────────────────────────────────────────────────
+
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── skills ──────────────────────────────────────────────────────────────────
+
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    customSkillDirs:
+      - !!js "process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))"
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── goals ───────────────────────────────────────────────────────────────────
+
+- id: tool-goal
+  name: '@deepseek-ai/dsh-tool-goal'
+
+# ── plan mode ───────────────────────────────────────────────────────────────
+
+- id: planning
+  name: cordis:group
+  group: true
+  isolate:
+    planMode: true
+  config:
+    - id: plan-mode
+      name: '@deepseek-ai/dsh-plan-mode'
+      config:
+        section: |
+              You are in DEEPSEARCH CODING MODE. Your workflow is: Deep Research → Auto Coding → Self-Verify → Iterate.
+
+              Stay in plan mode until you have a complete plan. When the plan is ready, call exit_plan_mode.
+
+              ## Phase 1: PLAN
+              Create a research plan first:
+              - What do you need to research?
+              - Which MCP tools will you use for research? (brave_search, web, youtube, sequential_thinking, etc.)
+              - What is the expected output of the research phase?
+
+              Then create a coding plan:
+              - What files will be created or modified?
+              - What MCP tools will be used for coding? (code_quality, diff, regex, etc.)
+              - How will the code be verified? (auto_analyze, git_diff_analyze, auto_fix_suggest)
+
+              Set max_iterations (1-5) for the self-loop.
+
+              Structure the plan:
+              ```yaml
+              research:
+                sources:
+                  - brave_search: "search query"
+                  - web: "URL to read"
+                expected_output: "problem understanding, key patterns, risks"
+              coding:
+                tasks:
+                  - id: task-1
+                    description: what to do
+                    depends_on: []
+                    tools: [bash, filesystem, code_quality]
+                    effort: M
+                max_iterations: 3
+              ```
+
+              ## Phase 2: DEEP RESEARCH (after plan approved)
+              Execute the research plan. Use all available MCP tools for information gathering.
+              Research thoroughly before writing any code. Document findings.
+
+              ## Phase 3: AUTO CODING
+              Implement based on research. Use code_quality MCP tools throughout.
+              Each change must be independently verifiable.
+
+              ## Phase 4: SELF-VERIFY
+              After each change, auto-verify:
+              - auto_analyze: scan modified files
+              - git_diff_analyze: check diff safety
+              - auto_fix_suggest: get fix recommendations
+              - Fix issues found, then re-verify
+
+              ## Phase 5: ITERATE
+              - Passed → record to activity_memory, done
+              - Minor issues → return to coding
+              - Major issues → return to research
+              - Requirements changed → return to plan
+
+# ── compaction ──────────────────────────────────────────────────────────────
+
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 4096
+        headChars: 2048
+        tailChars: 512
+
+# ── delegation and workflows ────────────────────────────────────────────────
+
+- id: delegation
+  name: cordis:group
+  group: true
+  isolate:
+    workflowEngine: true
+  config:
+    - id: tool-subagent-control
+      name: '@deepseek-ai/dsh-tool-subagent-control'
+
+    - id: tool-subagent-list-agents
+      name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+
+    - id: tool-subagent
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: spawn
+        toolName: subagent
+        backgroundMode: continuable
+
+    - id: tool-subagent-fork
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: fork
+        toolName: subagent_fork
+        backgroundMode: continuable
+
+    - id: tool-subagent-codex
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: codex
+        toolName: subagent_codex
+        enableRunInBackground: false
+        maxDepth: provider-managed
+
+    - id: tool-subagent-claude-code
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: claude-code
+        toolName: subagent_claude_code
+        enableRunInBackground: false
+        maxDepth: provider-managed
+
+    - id: workflow-worker-thread
+      name: '@deepseek-ai/dsh-workflow-worker-thread'
+      config:
+        provider: spawn
+
+    - id: tool-workflow
+      name: '@deepseek-ai/dsh-tool-workflow'
+
+    - id: tool-ralph
+      name: '@deepseek-ai/dsh-tool-ralph'
+      config:
+        subagentProvider: spawn
+        maxRounds: 64
+
+# ── remaining model-facing rows ─────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+  config:
+    allowParallelInProgress: true
+
+# The `web` service and its search provider stay in the host composition; only
+# the model-facing tool is per-session.
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: true
+    searchTimeoutMs: 120000
+
+# ── self-modification ───────────────────────────────────────────────────────
+
+- id: tool-cordis
+  name: '@deepseek-ai/dsh-tool-cordis'
+
+# ── presentation ────────────────────────────────────────────────────────────
+
+# Code Mode: 多步操作打包为一次 TypeScript 程序执行
+- id: tool-presentation
+  name: '@deepseek-ai/dsh-agent-tool-presentation'
+  config:
+    mode: code
